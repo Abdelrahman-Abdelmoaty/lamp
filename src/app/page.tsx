@@ -1,12 +1,13 @@
 import Link from "next/link";
 
 import { CreatePost } from "@/app/_components/create-post";
-import { getServerAuthSession } from "@/server/auth";
+import { auth, signIn, signOut } from "@/auth";
 import { api } from "@/trpc/server";
 
 export default async function Home() {
   const hello = await api.post.hello({ text: "from tRPC" });
-  const session = await getServerAuthSession();
+
+  const session = await auth();
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
@@ -47,12 +48,20 @@ export default async function Home() {
             <p className="text-center text-2xl text-white">
               {session && <span>Logged in as {session.user?.name}</span>}
             </p>
-            <Link
-              href={session ? "/api/auth/signout" : "/api/auth/signin"}
-              className="rounded-full bg-white/10 px-10 py-3 font-semibold no-underline transition hover:bg-white/20"
+            <form
+              action={async () => {
+                "use server";
+                session ? await signOut() : await signIn("Discord");
+              }}
             >
-              {session ? "Sign out" : "Sign in"}
-            </Link>
+              <button
+                type="submit"
+                // href={session ? "/api/auth/signout" : "/api/auth/signin"}
+                className="rounded-full bg-white/10 px-10 py-3 font-semibold no-underline transition hover:bg-white/20"
+              >
+                {session ? "Sign out" : "Sign in"}
+              </button>
+            </form>
           </div>
         </div>
 
@@ -63,7 +72,7 @@ export default async function Home() {
 }
 
 async function CrudShowcase() {
-  const session = await getServerAuthSession();
+  const session = await auth();
   if (!session?.user) return null;
 
   const latestPost = await api.post.getLatest();
